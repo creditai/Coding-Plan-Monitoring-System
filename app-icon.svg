@@ -1,0 +1,5 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="1024" height="1024" viewBox="0 0 1024 1024">
+  <rect width="1024" height="1024" rx="180" fill="#3b82f6"/>
+  <text x="512" y="580" text-anchor="middle" font-family="-apple-system, BlinkMacSystemFont, sans-serif" font-size="520" font-weight="800" fill="#ffffff">A</text>
+  <rect x="340" y="700" width="344" height="48" rx="24" fill="#ffffff" opacity="0.9"/>
+</svg>

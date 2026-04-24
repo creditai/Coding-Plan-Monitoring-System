@@ -52,6 +52,14 @@ function getCountdown(targetDate: Date | null) {
   };
 }
 
+function formatCountdown(cd: NonNullable<ReturnType<typeof getCountdown>>, lang: 'zh' | 'en'): string {
+  return t('timeFormatDays', lang, { days: cd.days, hours: cd.hours, minutes: cd.minutes });
+}
+
+function formatCountdownShort(cd: NonNullable<ReturnType<typeof getCountdown>>, lang: 'zh' | 'en'): string {
+  return t('timeFormatShort', lang, { days: cd.days, hours: cd.hours });
+}
+
 function StatusIndicator({ status, lang }: { status: AccountStatus; lang: 'zh' | 'en' }) {
   const statusMap: Record<AccountStatus, string> = {
     active: t('statusActive', lang),
@@ -83,7 +91,7 @@ function CountdownTimer({ resetDate, lang }: { resetDate: string | null; lang: '
     return (
       <>
         <div className="countdown-label">{t('cycle', lang)}</div>
-        <div className="countdown-value">∞ {t('unlimited', lang)}</div>
+        <div className="countdown-value">{t('symbolInfinity', lang)} {t('unlimited', lang)}</div>
       </>
     );
   }
@@ -92,7 +100,7 @@ function CountdownTimer({ resetDate, lang }: { resetDate: string | null; lang: '
     <>
       <div className="countdown-label">{t('nextReset', lang)}</div>
       <div className={`countdown-value ${cd.isUrgent ? 'urgent' : cd.isSoon ? 'soon' : ''}`}>
-        {cd.days}d {cd.hours}h {cd.minutes}m
+        {formatCountdown(cd, lang)}
       </div>
     </>
   );
@@ -141,7 +149,7 @@ function PredictionCard({
   return (
     <div className={`prediction-card ${cls}`}>
       <div className="prediction-status">
-        <span>{prediction.willExhaustBeforeReset ? '⚠️' : '✅'}</span>
+        <span>{prediction.willExhaustBeforeReset ? t('iconWarning', lang) : t('iconSuccess', lang)}</span>
         <span>{t(prediction.willExhaustBeforeReset ? 'willExhaust' : 'withinBudget', lang)}</span>
         <span style={{ marginLeft: 'auto', fontSize: 12, fontFamily: 'var(--font-mono)', color: 'var(--text-tertiary)' }}>
           {t('confidence', lang)}: {prediction.confidence}%
@@ -149,7 +157,7 @@ function PredictionCard({
       </div>
       <div className="prediction-details">
         <div className="prediction-detail-item">
-          <span>•</span>
+          <span>{t('bulletPoint', lang)}</span>
           <span>
             {t('currentRatePrediction', lang, {
               value: formatBalance(absRemaining, isTokenUnit),
@@ -158,7 +166,7 @@ function PredictionCard({
           </span>
         </div>
         <div className="prediction-detail-item">
-          <span>•</span>
+          <span>{t('bulletPoint', lang)}</span>
           <span>
             {t('rateDoubleWarning', lang, {
               result: t(prediction.willExhaustBeforeReset ? 'exhaustsEarlier' : 'mayExhaustEarly', lang)
@@ -166,7 +174,7 @@ function PredictionCard({
           </span>
         </div>
         <div className="prediction-detail-item">
-          <span>•</span>
+          <span>{t('bulletPoint', lang)}</span>
           <span>{formatRate(consumptionRate, Math.abs(consumptionRate) > 100, lang)}</span>
         </div>
       </div>
@@ -229,12 +237,12 @@ function AccountRow({ account, lang }: { account: Account; lang: 'zh' | 'en' }) 
         ) : (
           <>
             <div className="countdown-label">{t('cycle', lang)}</div>
-            <div className="countdown-value">∞ {t('unlimited', lang)}</div>
+            <div className="countdown-value">{t('symbolInfinity', lang)} {t('unlimited', lang)}</div>
           </>
         )}
       </div>
 
-      <div className="expand-icon">›</div>
+      <div className="expand-icon">{t('iconExpand', lang)}</div>
 
       {expanded && (
         <div className="detail-panel">
@@ -270,7 +278,7 @@ function AccountRow({ account, lang }: { account: Account; lang: 'zh' | 'en' }) 
                   <span className="reset-item-label">{t('timeRemaining', lang)}</span>
                   <span className="countdown-timer">
                     {getCountdown(new Date(account.plan.nextResetDate))
-                      ? `${getCountdown(new Date(account.plan.nextResetDate))!.days}d ${getCountdown(new Date(account.plan.nextResetDate))!.hours}h`
+                      ? formatCountdownShort(getCountdown(new Date(account.plan.nextResetDate))!, lang)
                       : '--'}
                   </span>
                 </div>
@@ -331,7 +339,7 @@ function AddModal({
       provider: prov as ProviderType,
       model: modelId,
       modelName: found?.name[lang] || modelId || '',
-      apiKeyEncrypted: '•••••••',
+      apiKeyEncrypted: t('maskApiKey', lang),
       balance: 0,
       status: 'idle',
       consumptionRate: 0,
@@ -356,7 +364,7 @@ function AddModal({
       <div className="modal-box" onClick={(e) => e.stopPropagation()}>
         <div className="modal-header">
           <h2>{t('addAccountTitle', lang)}</h2>
-          <button className="modal-close" onClick={onClose}>✕</button>
+          <button className="modal-close" onClick={onClose}>{t('iconClose', lang)}</button>
         </div>
 
         <form onSubmit={handleSubmit}>
@@ -481,7 +489,7 @@ export default function App() {
             className="btn-add-header"
             onClick={() => setShowAddModal(true)}
           >
-            + {t('addAccount', lang)}
+            {t('prefixAdd', lang)}{t('addAccount', lang)}
           </button>
 
           <button className="lang-toggle" onClick={toggleLang}>
@@ -498,7 +506,7 @@ export default function App() {
       {(isAnyoneUsing || isDetecting) ? (
         <div className={`usage-status-banner ${isAnyoneUsing ? 'in-use' : 'detecting'}`}>
           <span className={`status-icon-large ${isDetecting ? 'pulse' : ''}`}>
-            {isAnyoneUsing ? '●' : '◔'}
+            {isAnyoneUsing ? t('iconActive', lang) : t('iconDetecting', lang)}
           </span>
           <div className="status-content">
             <div className="status-title">
@@ -526,7 +534,7 @@ export default function App() {
         </div>
       ) : (
         <div className="usage-status-banner idle">
-          <span className="status-icon-large">○</span>
+          <span className="status-icon-large">{t('iconIdle', lang)}</span>
           <div className="status-content">
             <div className="status-title">{t('allIdle', lang)}</div>
           </div>
@@ -538,7 +546,7 @@ export default function App() {
         {[
           {
             label: t('totalBalance', lang),
-            val: `$${stats.totalBalance.toFixed(2)}`,
+            val: `${t('currencyPrefix', lang)}${stats.totalBalance.toFixed(2)}`,
             cls: ''
           },
           {
