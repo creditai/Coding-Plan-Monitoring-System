@@ -9,8 +9,8 @@ export interface I18n {
 
 export const i18n: I18n = {
   zh: {
-    appTitle: 'API Monitor Pro',
-    subtitle: '实时余额与用量监控',
+    appTitle: 'Coding Plan Monitor',
+    subtitle: '实时监控多服务商 API 用量与 Plan 配额',
     darkMode: '深色',
     lightMode: '浅色',
     switchLang: 'EN',
@@ -76,8 +76,8 @@ export const i18n: I18n = {
     maskApiKey: '•••••••',
   },
   en: {
-    appTitle: 'API Monitor Pro',
-    subtitle: 'Real-time balance and usage tracking',
+    appTitle: 'Coding Plan Monitor',
+    subtitle: 'Real-time multi-provider API usage & Plan quota tracking',
     darkMode: 'DARK',
     lightMode: 'LIGHT',
     switchLang: '中文',
