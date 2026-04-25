@@ -1,7 +1,7 @@
 #![cfg_attr(not(debug_assertions), windows_subsystem = "windows")]
 
 use serde::{Deserialize, Serialize};
-use tauri::{Manager, Emitter};
+use tauri::Manager;
 
 #[derive(Debug, Clone, Serialize, Deserialize)]
 #[serde(rename_all = "camelCase")]
@@ -16,109 +16,6 @@ pub struct BalanceResult {
     pub tokens_percentage: Option<f64>,
     pub next_reset: Option<String>,
     pub error: Option<String>,
-}
-
-#[tauri::command]
-async fn create_widget_window(app: tauri::AppHandle) -> Result<(), String> {
-    use std::fs;
-    use std::path::PathBuf;
-
-    let app_dir = app.path().app_data_dir().map_err(|e| e.to_string())?;
-    if !app_dir.exists() {
-        fs::create_dir_all(&app_dir).map_err(|e| e.to_string())?;
-    }
-
-    let widget_html = include_str!("../../widget.html");
-
-    let widget_label = format!("widget_{}", std::time::SystemTime::now()
-        .duration_since(std::time::UNIX_EPOCH)
-        .unwrap()
-        .as_millis());
-
-    let html_path: PathBuf = app_dir.join(format!("{}.html", widget_label));
-    fs::write(&html_path, widget_html).map_err(|e| e.to_string())?;
-
-    let url = format!("file://{}", html_path.to_string_lossy());
-    eprintln!("[Widget] Loading: {}", url);
-
-    let widget_window = tauri::WebviewWindowBuilder::new(
-        &app,
-        &widget_label,
-        tauri::WebviewUrl::External(url.parse().map_err(|e| format!("{:?}", e))?),
-    )
-    .title("CPMS Widget")
-    .inner_size(220.0, 160.0)
-    .decorations(false)
-    .transparent(true)
-    .always_on_top(true)
-    .skip_taskbar(true)
-    .resizable(false)
-    .center()
-    .build()
-    .map_err(|e| e.to_string())?;
-
-    let widget_window_clone = widget_window.clone();
-    let _widget_label = widget_label.clone();
-    std::thread::spawn(move || {
-        loop {
-            std::thread::sleep(std::time::Duration::from_secs(30));
-            let _ = widget_window_clone.emit("widget-ping", ());
-        }
-    });
-
-    eprintln!("[Widget] Created: {}", _widget_label);
-    Ok(())
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WidgetAccountData {
-    pub id: String,
-    pub name: String,
-    pub provider: String,
-    pub balance: f64,
-    pub status: String,
-    pub plan: Option<WidgetPlanData>,
-}
-
-#[derive(Debug, Clone, Serialize, Deserialize)]
-pub struct WidgetPlanData {
-    pub tokens_percentage: Option<f64>,
-    pub next_reset_date: Option<String>,
-}
-
-#[tauri::command]
-async fn update_widget_data(app: tauri::AppHandle, accounts: Vec<WidgetAccountData>) -> Result<(), String> {
-    let windows = app.webview_windows();
-    for (label, window) in windows {
-        if label.starts_with("widget_") {
-            let _ = window.emit("widget-data", &accounts);
-        }
-    }
-    Ok(())
-}
-
-#[tauri::command]
-async fn close_all_widgets(app: tauri::AppHandle) -> Result<(), String> {
-    let windows = app.webview_windows();
-    let widget_labels: Vec<String> = windows.keys()
-        .filter(|label| label.starts_with("widget_"))
-        .cloned()
-        .collect();
-    for label in widget_labels {
-        if let Some(window) = app.get_webview_window(&label) {
-            let _ = window.close();
-        }
-    }
-    Ok(())
-}
-
-#[tauri::command]
-async fn close_current_widget(app: tauri::AppHandle, label: String) -> Result<(), String> {
-    eprintln!("[Widget] Close requested for: {}", label);
-    if let Some(window) = app.get_webview_window(&label) {
-        window.close().map_err(|e| e.to_string())?;
-    }
-    Ok(())
 }
 
 #[tauri::command]
@@ -606,8 +503,8 @@ async fn fetch_deepseek_balance(api_key: &str) -> Result<BalanceResult, String> 
         Some(i) => {
             let parse_f = |s: &str| s.parse::<f64>().unwrap_or(0.0);
             let total = parse_f(&i.total_balance);
-            let topped = i.topped_up_balance.as_ref().map(|s| parse_f(s)).unwrap_or(0.0);
-            let granted = i.granted_balance.as_ref().map(|s| parse_f(s)).unwrap_or(0.0);
+            let _topped = i.topped_up_balance.as_ref().map(|s| parse_f(s)).unwrap_or(0.0);
+            let _granted = i.granted_balance.as_ref().map(|s| parse_f(s)).unwrap_or(0.0);
             Ok(BalanceResult {
                 balance: total,
                 is_token: true,
@@ -1005,11 +902,11 @@ fn parse_glm_balance_response(body_text: &str, is_coding_plan: bool) -> Result<B
 pub fn run() {
     tauri::Builder::default()
         .plugin(tauri_plugin_opener::init())
-        .invoke_handler(tauri::generate_handler![fetch_balance, get_machine_key, create_widget_window, update_widget_data, close_all_widgets, close_current_widget])
-        .setup(|app| {
+        .invoke_handler(tauri::generate_handler![fetch_balance, get_machine_key])
+        .setup(|_app| {
             #[cfg(debug_assertions)]
             {
-                let window = app.get_webview_window("main").unwrap();
+                let window = _app.get_webview_window("main").unwrap();
                 window.open_devtools();
             }
             Ok(())
