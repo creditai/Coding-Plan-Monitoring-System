@@ -82,6 +82,7 @@ jobs:
           path: |
             src-tauri/target/${{ matrix.rust_target }}/release/bundle/msi/*.msi
             src-tauri/target/${{ matrix.rust_target }}/release/bundle/nsis/*.exe
+          if-no-files-found: error
 
       - name: Upload macOS artifacts
         if: matrix.platform == 'macos-latest'
@@ -89,6 +90,7 @@ jobs:
         with:
           name: macos-${{ matrix.target }}
           path: src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.dmg
+          if-no-files-found: error
 
       - name: Upload Linux artifacts
         if: matrix.platform == 'ubuntu-22.04'
@@ -98,6 +100,7 @@ jobs:
           path: |
             src-tauri/target/${{ matrix.rust_target }}/release/bundle/deb/*.deb
             src-tauri/target/${{ matrix.rust_target }}/release/bundle/appimage/*.AppImage
+          if-no-files-found: error
 
   release:
     needs: build
@@ -147,8 +150,8 @@ jobs:
             - Bilingual UI (Chinese/English)
             - Dark/Light theme support
           files: |
-            artifacts/windows-*/*.msi
-            artifacts/windows-*/*.exe
-            artifacts/macos-*/*.dmg
-            artifacts/linux-*/*.deb
-            artifacts/linux-*/*.AppImage
+            artifacts/**/*.msi
+            artifacts/**/*.exe
+            artifacts/**/*.dmg
+            artifacts/**/*.deb
+            artifacts/**/*.AppImage
