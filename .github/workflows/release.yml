@@ -6,8 +6,11 @@ on:
       - 'v*'
   workflow_dispatch:
 
+env:
+  FORCE_JAVASCRIPT_ACTIONS_TO_NODE24: true
+
 jobs:
-  release:
+  build:
     permissions:
       contents: write
     strategy:
@@ -16,14 +19,19 @@ jobs:
         include:
           - platform: windows-latest
             target: x86_64-pc-windows-msvc
+            rust_target: x86_64-pc-windows-msvc
           - platform: macos-latest
             target: aarch64-apple-darwin
+            rust_target: aarch64-apple-darwin
           - platform: macos-latest
             target: x86_64-apple-darwin
+            rust_target: x86_64-apple-darwin
           - platform: ubuntu-22.04
             target: x86_64-unknown-linux-gnu
+            rust_target: x86_64-unknown-linux-gnu
 
     runs-on: ${{ matrix.platform }}
+    name: Build (${{ matrix.platform }} / ${{ matrix.target }})
 
     steps:
       - name: Checkout repository
@@ -32,7 +40,7 @@ jobs:
       - name: Install Rust stable
         uses: dtolnay/rust-toolchain@stable
         with:
-          targets: ${{ matrix.target }}
+          targets: ${{ matrix.rust_target }}
 
       - name: Rust cache
         uses: swatinem/rust-cache@v2
@@ -42,7 +50,7 @@ jobs:
       - name: Setup Node.js
         uses: actions/setup-node@v4
         with:
-          node-version: 20
+          node-version: 22
 
       - name: Install Linux dependencies
         if: matrix.platform == 'ubuntu-22.04'
@@ -51,23 +59,79 @@ jobs:
           sudo apt-get install -y libwebkit2gtk-4.1-dev libappindicator3-dev librsvg2-dev patchelf libssl-dev
 
       - name: Install frontend dependencies
-        run: npm ci
+        run: npm install
 
-      - name: Build Tauri app
-        uses: tauri-apps/tauri-action@v0
+      - name: Build frontend
+        run: npm run build
+
+      - name: Build Tauri app (Windows)
+        if: matrix.platform == 'windows-latest'
+        run: npx tauri build --target ${{ matrix.rust_target }}
         env:
-          GITHUB_TOKEN: ${{ secrets.GITHUB_TOKEN }}
+          RUST_MIN_STACK: 8388608
+
+      - name: Build Tauri app (macOS/Linux)
+        if: matrix.platform != 'windows-latest'
+        run: npx tauri build --target ${{ matrix.rust_target }}
+
+      - name: Upload Windows artifacts
+        if: matrix.platform == 'windows-latest'
+        uses: actions/upload-artifact@v4
         with:
-          tauriScript: npx tauri
-          tagName: ${{ github.ref_name }}
-          releaseName: 'CPMS v__VERSION__'
-          releaseBody: |
-            ## CPMS - Coding Plan Monitoring System v__VERSION__
+          name: windows-${{ matrix.target }}
+          path: |
+            src-tauri/target/${{ matrix.rust_target }}/release/bundle/msi/*.msi
+            src-tauri/target/${{ matrix.rust_target }}/release/bundle/nsis/*.exe
+
+      - name: Upload macOS artifacts
+        if: matrix.platform == 'macos-latest'
+        uses: actions/upload-artifact@v4
+        with:
+          name: macos-${{ matrix.target }}
+          path: src-tauri/target/${{ matrix.rust_target }}/release/bundle/dmg/*.dmg
+
+      - name: Upload Linux artifacts
+        if: matrix.platform == 'ubuntu-22.04'
+        uses: actions/upload-artifact@v4
+        with:
+          name: linux-${{ matrix.target }}
+          path: |
+            src-tauri/target/${{ matrix.rust_target }}/release/bundle/deb/*.deb
+            src-tauri/target/${{ matrix.rust_target }}/release/bundle/appimage/*.AppImage
+
+  release:
+    needs: build
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    name: Create Release
+
+    steps:
+      - name: Download all artifacts
+        uses: actions/download-artifact@v4
+        with:
+          path: artifacts
+          merge-multiple: false
+
+      - name: List artifacts
+        run: find artifacts -type f | head -50
+
+      - name: Create GitHub Release
+        uses: softprops/action-gh-release@v2
+        with:
+          tag_name: ${{ github.ref_name }}
+          name: CPMS ${{ github.ref_name }}
+          draft: true
+          body: |
+            ## CPMS - Coding Plan Monitoring System ${{ github.ref_name }}
 
             ### Downloads
-            - **Windows**: `.msi` installer or `.exe` (x64)
-            - **macOS**: `.dmg` (Apple Silicon or Intel)
-            - **Linux**: `.deb` or `.AppImage` (x64)
+            | Platform | File |
+            |----------|------|
+            | **Windows (x64)** | `.msi` installer or `.exe` |
+            | **macOS (Apple Silicon)** | `.dmg` |
+            | **macOS (Intel)** | `.dmg` |
+            | **Linux (x64)** | `.deb` or `.AppImage` |
 
             ### Supported Providers
             - Zhipu GLM (Pay-as-you-go)
@@ -76,12 +140,15 @@ jobs:
             - DeepSeek
 
             ### What's New
-            - First public release
+            - First public release 🎉
             - Real-time multi-provider API monitoring
             - Glassmorphism floating widget
             - Consumption prediction engine
             - Bilingual UI (Chinese/English)
-
-          releaseDraft: true
-          prerelease: false
-          args: --target ${{ matrix.target }}
+            - Dark/Light theme support
+          files: |
+            artifacts/windows-*/*.msi
+            artifacts/windows-*/*.exe
+            artifacts/macos-*/*.dmg
+            artifacts/linux-*/*.deb
+            artifacts/linux-*/*.AppImage
