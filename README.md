@@ -1,102 +1,64 @@
-# Coding Plan Monitoring System
-
-[中文](README_CN.md) | [English](README.md)
+# CPMS - Coding Plan Monitoring System
 
 > *Know your API usage. Before your plan runs out.*
 
-You have 5 AI provider accounts across OpenAI, Anthropic, GLM, Google, Azure — each with different billing cycles, quotas, and reset dates.
-
-**Who's using what, right now? Will any account exhaust before reset?**
-
-CPMS answers both questions in seconds. Desktop app. Real-time monitoring. Zero cloud dependency.
-
----
-
-## Screenshots
-
-**Light Mode / Dark Mode — Bilingual UI with real-time status**
-
-<table>
-  <tr>
-    <td><img src="docs/screenshots/screenshot-en-light.png" width="420" /></td>
-    <td><img src="docs/screenshots/screenshot-dark.png" width="420" /></td>
-  </tr>
-</table>
-
-**Add Account — Provider + Model selection**
-
-<p><img src="docs/screenshots/screenshot-add-modal.png" width="500" /></p>
-
----
-
-## What It Does
-
-CPMS monitors multiple AI API accounts in one window. Each account gets a 10-second **snapshot detection** (is someone using this right now?) followed by 60-second **long-term tracking** (consumption rate, prediction).
-
-```
-You (Desktop App)
-  ↕
-Monitor Core
-  ↕
-┌─────────────┬──────────────┬──────────────┬──────────────┐
-│ OpenAI      │ Anthropic    │ GLM          │ Gemini       │
-│ GPT-4o      │ Claude Opus4 │ GLM-4-Plus   │ Gemini 2.5   │
-│ $23.47      │ 4,580 tokens │ 125k tokens  │ $8.92        │
-│ ACTIVE ✓    │ IDLE         │ ACTIVE ✓     │ DETECTING    │
-│ -0.23/min   │              │ -156.8/min   │              │
-└─────────────┴──────────────┴──────────────┴──────────────┘
-  ↕
-Prediction Engine → "GLM will exhaust 45k tokens before reset (78% confidence)"
-```
+Real-time desktop monitor for AI API token & balance usage across multiple providers. Built with Tauri 2 + React.
 
 ---
 
 ## Features
 
-- **Two-stage monitoring** — 10s snapshot + 60s long-term tracking. Know instantly if anyone is using an API.
-- **Multi-provider support** — OpenAI, Anthropic (Claude), Zhipu GLM, Google Gemini, Azure OpenAI.
-- **Model-level granularity** — Each account binds to a specific model (GPT-4o, Claude Opus 4, GLM-4-Plus, etc.).
-- **Plan reset countdown** — Real-time days/hours/minutes until quota resets.
-- **Overspend prediction** — Confidence-scored forecast: will this account run out before reset?
-- **Bilingual UI** — Chinese / English one-click switch. All text, symbols, and formats are i18n'd.
-- **Dark / Light theme** — System-adaptive or manual toggle.
-- **Privacy-first** — All data stays local. API keys stored in OS credential manager. Zero telemetry.
+- **Real-time Monitoring** — 10s snapshot detection + 60s long-term tracking cycle
+- **Multi-provider** — Zhipu GLM (Pay-as-you-go), GLM Coding Plan (z.ai), MiniMax (CN/Global), DeepSeek
+- **Model-level Tracking** — Each account binds to a specific model with independent status
+- **Consumption Rate** — Real-time rate display (tokens/min or currency/min) with color-coded alerts
+- **Overspend Prediction** — Time-to-exhaust forecast based on consumption rate, compared against reset cycle
+- **Plan Reset Countdown** — Live days/hours/minutes until quota resets
+- **Floating Widget** — Glassmorphism always-on-top mini window for quick glance
+- **Bilingual UI** — Chinese / English one-click switch
+- **Dark / Light Theme** — System-adaptive or manual toggle
+- **Privacy-first** — All data stored locally. API keys encrypted with OS credential manager. Zero telemetry.
 
 ---
 
-## Prerequisites
+## Supported Providers
 
-| Requirement | Version | Check |
-|-------------|---------|-------|
-| Node.js | >= 18 | `node --version` |
-| Rust | >= 1.75 | `rustc --version` (via [rustup.rs](https://rustup.rs)) |
-| OS | Windows 10+ / macOS 12+ | Webview2 bundled on Windows |
+| Provider | Models | Billing |
+|----------|--------|---------|
+| **Zhipu GLM** | GLM-5.1, GLM-5, GLM-4-Plus, GLM-4-Air, GLM-4-Flash, GLM-4-Long, GLM-4V-Plus | Pay-as-you-go |
+| **GLM Coding Plan** | GLM-5.1, GLM-5, GLM-4.7, GLM-4.6, GLM-4.5, GLM-4.5-Air | Coding Plan (z.ai) |
+| **MiniMax (CN)** | MiniMax-M2.7, MiniMax-M2.5, MiniMax-M2.1, MiniMax-M2-her, Hailuo 2.3 | Token Plan |
+| **MiniMax (Global)** | MiniMax-M2.7, MiniMax-M2.5, MiniMax-M2.1, MiniMax-M2-her, Hailuo 2.3 | Token Plan |
+| **DeepSeek** | DeepSeek-V3.2, DeepSeek-R1, DeepSeek-Coder, DeepSeek-V3.1 | Pay-as-you-go |
 
 ---
 
 ## Quick Start
 
+### Prerequisites
+
+| Requirement | Version |
+|-------------|---------|
+| Node.js | >= 18 |
+| Rust | >= 1.75 (via [rustup.rs](https://rustup.rs)) |
+| OS | Windows 10+ / macOS 12+ |
+
+### Install & Run
+
 ```bash
 git clone https://github.com/creditai/Coding-Plan-Monitoring-System.git
 cd Coding-Plan-Monitoring-System
 npm install
-npm run tauri dev      # development mode
-npm run tauri build    # production build (.exe / .msi)
+npm run tauri dev
+```
+
+### Build for Production
+
+```bash
+npm run tauri build
 ```
 
 Output: `src-tauri/target/release/bundle/`
-
----
-
-## Supported Providers & Models
-
-| Provider | Models | Billing |
-|----------|--------|---------|
-| **OpenAI** | GPT-4o, GPT-4 Turbo, GPT-3.5-Turbo, o1, o3-mini | Pay-as-you-go |
-| **Anthropic** | Claude Opus 4, Claude Sonnet 4, Claude Haiku 3.5 | Monthly / Quarterly |
-| **Zhipu GLM** | GLM-4-Plus, GLM-4-Air, GLM-4-Flash, GLM-4-Long | Monthly Coding Plan |
-| **Google** | Gemini 2.5 Pro, Gemini 2.5 Flash, Gemini 2.0 Flash | Pay-as-you-go |
-| **Azure OpenAI** | GPT-4o, GPT-4 Turbo, DALL-E 3 | Enterprise |
 
 ---
 
@@ -104,11 +66,30 @@ Output: `src-tauri/target/release/bundle/`
 
 | Layer | Tech |
 |-------|------|
-| Desktop Framework | [Tauri 2.0](https://v2.tauri.app/) (Rust + Webview2, ~5MB bundle) |
+| Desktop Framework | [Tauri 2.0](https://v2.tauri.app/) (Rust + Webview2) |
 | Frontend | React 18 + TypeScript + Vite |
-| State Management | [Zustand](https://zustand.pmnd.rs/) |
+| State Management | [Zustand](https://zustand.pmnd.rs/) with localStorage persistence |
 | i18n | Custom bilingual system (zero runtime deps) |
 | Styling | CSS Variables (light/dark themes) |
+| Encryption | AES-GCM via Tauri (OS machine key) |
+
+---
+
+## Architecture
+
+```
+Desktop App (Tauri)
+├── Frontend (React)
+│   ├── Dashboard Mode — Full monitoring view with account list, stats, predictions
+│   └── Widget Mode — Compact always-on-top floating window
+├── Backend (Rust)
+│   ├── Provider API adapters (GLM, MiniMax, DeepSeek)
+│   ├── Machine key generation for API key encryption
+│   └── Balance/quota fetching with JWT support
+└── Storage
+    ├── localStorage (Zustand persist) — Account data, preferences
+    └── Encrypted API keys — AES-GCM with OS-derived machine key
+```
 
 ---
 
@@ -116,29 +97,19 @@ Output: `src-tauri/target/release/bundle/`
 
 | Concern | Solution |
 |---------|----------|
-| API Key Storage | OS native credential manager (Windows Credential Manager / macOS Keychain) |
-| JWT Tokens | In-memory cache, auto-refresh on expiry |
-| Network | HTTPS enforced, certificate verification |
-| Local Data | SQLite with optional encryption |
+| API Key Storage | AES-GCM encrypted, key derived from OS machine ID |
+| Network | HTTPS only, direct provider API calls |
+| Local Data | Browser localStorage, never leaves the machine |
+| Telemetry | None. Zero network calls except provider APIs you configure |
 
 ---
 
-## FAQ
+## How Monitoring Works
 
-**Q: Does CPMS send my API keys to any server?**
-A: No. Everything runs locally. Keys never leave your machine.
-
-**Q: Can I monitor accounts from the same provider?**
-A: Yes. Add as many accounts per provider as you need. Each has independent tracking.
-
-**Q: How accurate is the overspend prediction?**
-A: It uses historical consumption rate extrapolated to the remaining time before reset. Confidence score reflects data sufficiency — more usage history = higher confidence.
-
-**Q: Does it work without internet?**
-A: The UI works offline, but balance queries require network access to each provider's API.
-
-**Q: Can I use it on macOS or Linux?**
-A: Yes. Tauri supports all three platforms. Build with `npm run tauri build` on each.
+1. **Snapshot Phase (10s interval)** — Rapid balance checks to detect active usage
+2. **Tracking Phase (60s interval)** — Long-term consumption rate calculation
+3. **Prediction Engine** — Extrapolates current consumption rate to estimate time-to-exhaust
+4. **Status Indicators** — Green (idle), Red pulse (active/consuming), Blue (detecting)
 
 ---
 
@@ -147,4 +118,5 @@ A: Yes. Tauri supports all three platforms. Build with `npm run tauri build` on 
 [MIT](LICENSE)
 
 ---
+
 <p align="center">Made by <a href="https://github.com/creditai">creditai</a></p>
